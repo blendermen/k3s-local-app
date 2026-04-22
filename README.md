@@ -3,7 +3,7 @@
 ![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
 # 🚀 K3S DevOps Project: React, Flask & PostgreSQL
 
-A comprehensive full-stack application ecosystem deployed on **local K3S **
+A comprehensive full-stack application ecosystem deployed on **local K3S/K3D**
 
 
 <img width="547" alt="Screenshot_20260423_004248" src="https://github.com/user-attachments/assets/f10635fa-8c22-49aa-b929-70cb9ada23d8" />
