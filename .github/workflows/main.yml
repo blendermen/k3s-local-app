@@ -1,0 +1,52 @@
+name: CI/CD to DockerHub and GitOps Update
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # 1. Logowanie do DockerHub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 2. Budowanie i wypychanie obrazu BACKENDU (używamy SHA dla unikalności)
+      - name: Build and push Backend image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest -f backend/backend.Dockerfile ./backend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend --all-tags
+
+      # 3. Budowanie i wypychanie obrazu FRONTENDU
+      - name: Build and push Frontend image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest -f frontend/frontend.Dockerfile ./frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend --all-tags
+
+      # 4. AKTUALIZACJA GITOPS - Podmiana obrazów w manifestach i push do repozytorium z manifestami
+      - name: Update Manifests in Infrastructure Repo
+        run: |
+          # Konfiguracja Gita
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+          # Klonowanie repozytorium z manifestami
+          git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository_owner }}/k3s-local-manifest.git
+          cd k3s-local-manifest
+
+          # Podmiana obrazów w pliku all-in-one.yaml na nowe wersje z tagiem SHA
+          # Używamy separatora | w sed, bo w nazwie obrazu są slashe /
+          sed -i "s|${{ secrets.DOCKERHUB_USERNAME }}/backend:[^ ]*|${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}|g" k3s-deployment.yaml
+          sed -i "s|${{ secrets.DOCKERHUB_USERNAME }}/frontend:[^ ]*|${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" k3s-deployment.yaml
+
+          # Commit i Push zmian do repozytorium manifestów
+          git add k3s-deployment.yaml
+          git commit -m "update images to ${{ github.sha }} [skip ci]"
+          git push origin main
