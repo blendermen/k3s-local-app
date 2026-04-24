@@ -9,10 +9,10 @@ CORS(app)  # Pozwala frontendowi na zapytania do backendu (Cross-Origin)
 
 # Konfiguracja połączenia pobierana ze zmiennych środowiskowych
 # To jest kluczowe dla Azure/Kubernetes!
-DB_HOST = os.environ.get('DB-HOST', 'localhost')
-DB_NAME = os.environ.get('DB-NAME', 'postgres')
-DB_USER = os.environ.get('DB-USER', 'postgres')
-DB_PASS = os.environ.get('DB-PASSWORD', 'password')
+DB_HOST = os.environ.get('DB_HOST', 'localhost')
+DB_NAME = os.environ.get('DB_NAME', 'postgres')
+DB_USER = os.environ.get('DB_USER', 'postgres')
+DB_PASS = os.environ.get('DB_PASSWORD', 'password')
 
 def get_db_connection():
     """Funkcja nawiązująca połączenie z bazą z prostym retry logic."""
