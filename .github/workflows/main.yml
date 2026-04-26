@@ -5,48 +5,88 @@ on:
     branches: ["main"]
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      MANIFEST_REPO: "${{ github.repository_owner }}/k3s-local-manifest"
+      DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      # 1. Logowanie do DockerHub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 2. Budowanie i wypychanie obrazu BACKENDU (używamy SHA dla unikalności)
+      # --- 1. BUDOWANIE OBRAZÓW ---
       - name: Build and push Backend image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest -f backend/backend.Dockerfile ./backend
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend --all-tags
+          docker build -t ${{ env.DOCKER_USER }}/backend:${{ github.sha }} -t ${{ env.DOCKER_USER }}/backend:latest -f backend/backend.Dockerfile ./backend
+          docker push ${{ env.DOCKER_USER }}/backend --all-tags
 
-      # 3. Budowanie i wypychanie obrazu FRONTENDU
       - name: Build and push Frontend image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest -f frontend/frontend.Dockerfile ./frontend
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend --all-tags
+          docker build -t ${{ env.DOCKER_USER }}/frontend:${{ github.sha }} -t ${{ env.DOCKER_USER }}/frontend:latest -f frontend/frontend.Dockerfile ./frontend
+          docker push ${{ env.DOCKER_USER }}/frontend --all-tags
 
-      # 4. AKTUALIZACJA GITOPS - Podmiana obrazów w manifestach i push do repozytorium z manifestami
-      - name: Update Manifests in Infrastructure Repo
+      # --- 2. PRZYGOTOWANIE REPOZYTORIUM MANIFESTÓW ---
+      - name: Checkout Manifest Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.MANIFEST_REPO }}
+          token: ${{ env.GH_TOKEN }}
+          path: manifest-repo
+
+      - name: Configure Git
+        working-directory: manifest-repo
         run: |
-          # Konfiguracja Gita
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
 
-          # Klonowanie repozytorium z manifestami
-          git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository_owner }}/k3s-local-manifest.git
-          cd k3s-local-manifest
+      # --- 3. AKTUALIZACJA DEV (AUTOMATYCZNA PRZEZ KUSTOMIZE) ---
+      - name: Update Dev Manifests
+        working-directory: manifest-repo/k8s/overlays/dev
+        run: |
+          # Aktualizacja obrazów w pliku kustomization.yaml
+          kustomize edit set image ${{ env.DOCKER_USER }}/backend=${{ env.DOCKER_USER }}/backend:${{ github.sha }}
+          kustomize edit set image ${{ env.DOCKER_USER }}/frontend=${{ env.DOCKER_USER }}/frontend:${{ github.sha }}
 
-          # Podmiana obrazów w pliku all-in-one.yaml na nowe wersje z tagiem SHA
-          # Używamy separatora | w sed, bo w nazwie obrazu są slashe /
-          sed -i "s|${{ secrets.DOCKERHUB_USERNAME }}/backend:[^ ]*|${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}|g" k3s-deployment.yaml
-          sed -i "s|${{ secrets.DOCKERHUB_USERNAME }}/frontend:[^ ]*|${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" k3s-deployment.yaml
+          git add kustomization.yaml
+          if git diff --staged --quiet; then
+            echo "No changes for Dev"
+          else
+            git commit -m "chore(dev): update images to ${{ github.sha }}"
+            git push origin main
+          fi
 
-          # Commit i Push zmian do repozytorium manifestów
-          git add k3s-deployment.yaml
-          git commit -m "update images to ${{ github.sha }} [skip ci]"
-          git push origin main
+      # --- 4. AKTUALIZACJA PROD (PULL REQUEST PRZEZ KUSTOMIZE) ---
+      - name: Update Prod Manifests and Create PR
+        working-directory: manifest-repo
+        run: |
+          BRANCH_NAME="prod-release-${{ github.sha }}"
+          git checkout -b $BRANCH_NAME
+
+          # Przejdź do folderu prod i użyj kustomize
+          cd k8s/overlays/prod
+          kustomize edit set image ${{ env.DOCKER_USER }}/backend=${{ env.DOCKER_USER }}/backend:${{ github.sha }}
+          kustomize edit set image ${{ env.DOCKER_USER }}/frontend=${{ env.DOCKER_USER }}/frontend:${{ github.sha }}
+
+          git add kustomization.yaml
+          if git diff --staged --quiet; then
+            echo "No changes for Prod"
+          else
+            git commit -m "chore(prod): release update to ${{ github.sha }}"
+            git push origin $BRANCH_NAME
+            
+            # Tworzenie PR za pomocą GitHub CLI
+            gh pr create \
+              --title "🚀 Prod Release: ${{ github.sha }}" \
+              --body "Automated production update using Kustomize. Please merge after verifying Dev environment." \
+              --base main \
+              --head $BRANCH_NAME \
+              --repo ${{ env.MANIFEST_REPO }}
+          fi
