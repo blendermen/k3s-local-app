@@ -10,6 +10,10 @@ COPY package*.json ./
 # Instalujemy zależności
 RUN npm install
 
+# Ustawiamy zmienną środowiskową dla Vite, aby była dostępna podczas budowania
+ARG VITE_GIT_SHA
+ENV VITE_GIT_SHA=$VITE_GIT_SHA
+
 # Kopiujemy resztę plików źródłowych i budujemy wersję produkcyjną
 COPY . .
 RUN npm run build

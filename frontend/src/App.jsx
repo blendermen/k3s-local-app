@@ -10,6 +10,17 @@ export default function App() {
   const [error, setError] = useState(null);
   const [visits, setVisits] = useState(0);
 
+  // --- LOGIKA ŚRODOWISKOWA ---
+  const hostname = window.location.hostname;
+  
+  // Sprawdzamy czy to PROD, DEV czy LOCAL
+  const isProd = hostname === 'prod.mazurart.pl';
+  const isDev = hostname === 'dev.mazurart.pl';
+  const envName = isProd ? 'PROD' : (isDev ? 'DEV' : 'LOCAL');
+
+  // Pobieramy SHA wstrzyknięte przez Docker Build Arg
+  const GIT_SHA = import.meta.env.VITE_GIT_SHA || 'development';
+  
   // Lokalnie uderzamy w port backendu (localhost:5000).
   // W Azure/Kubernetes używamy ścieżki relatywnej '/api/data'.
   const API_URL = window.location.hostname === 'localhost' 
@@ -55,19 +66,31 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-slate-200">
+  <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-slate-200 relative overflow-hidden">
+        
+        {/* BADGE ŚRODOWISKA */}
+        <div className={`absolute top-0 right-0 px-4 py-1 text-[10px] font-bold uppercase tracking-widest shadow-sm rounded-bl-xl ${
+          isProd ? 'bg-red-500 text-white' : (isDev ? 'bg-yellow-400 text-black' : 'bg-slate-200 text-slate-600')
+        }`}>
+          {envName}
+        </div>
+
         <header className="mb-8">
           <div className="inline-block p-3 bg-blue-50 rounded-full mb-4">
             <span className="text-4xl">🚀</span>
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            K3D React V2 
+            K3D React V2
           </h1>
-          <p className="text-slate-500 mt-2">
-            Demo wdrożenia aplikacji webowej na lokalnym K3D (React + Flash + PostgreSQL)
+          <p className="text-[10px] text-slate-400 font-mono mt-1 uppercase tracking-tighter">
+            Build: {GIT_SHA.substring(0, 7)}
+          </p>
+          <p className="text-slate-500 mt-4 text-sm">
+            Demo wdrożenia aplikacji webowej na lokalnym K3D (React + Flask + PostgreSQL)
           </p>
         </header>
+
 
         <main>
           <div className="bg-slate-50 rounded-xl p-6 mb-8 text-left min-h-[120px] flex flex-col justify-center border border-slate-100 relative overflow-hidden">

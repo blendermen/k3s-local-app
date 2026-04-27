@@ -30,7 +30,7 @@ jobs:
 
       - name: Build and push Frontend image
         run: |
-          docker build -t ${{ env.DOCKER_USER }}/frontend:${{ github.sha }} -t ${{ env.DOCKER_USER }}/frontend:latest -f frontend/frontend.Dockerfile ./frontend
+          docker build --build-arg VITE_GIT_SHA=${{ github.sha }} -t ${{ env.DOCKER_USER }}/frontend:${{ github.sha }} -t ${{ env.DOCKER_USER }}/frontend:latest -f frontend/frontend.Dockerfile ./frontend
           docker push ${{ env.DOCKER_USER }}/frontend --all-tags
 
       # --- 2. PRZYGOTOWANIE REPOZYTORIUM MANIFESTÓW ---
