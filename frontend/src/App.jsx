@@ -81,7 +81,7 @@ export default function App() {
             <span className="text-4xl">🚀</span>
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            K3D React V2.1
+            K3D React V2.2
           </h1>
           <p className="text-[10px] text-slate-400 font-mono mt-1 uppercase tracking-tighter">
             Build: {GIT_SHA.substring(0, 7)}
