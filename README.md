@@ -6,30 +6,53 @@
 A comprehensive full-stack application ecosystem deployed on **local K3S/K3D**
 
 
-<img width="547" alt="Screenshot_20260423_004248" src="https://github.com/user-attachments/assets/f10635fa-8c22-49aa-b929-70cb9ada23d8" />
+<img width="1329" height="910" alt="k3sdemo" src="https://github.com/user-attachments/assets/de1924ef-ac19-4a68-8692-47dbfcaaec51" />
 
 ## 🏗️ System Architecture
 
-The application consists of three tiers running within the Kubernetes cluster:
+The application consists of **three** tiers running within the Kubernetes cluster:
 
 * **Frontend:** React (Vite) application served via Nginx.
 * **Backend:** REST API built with Flask (Python), handling the visit counter logic.
 * **Database:** PostgreSQL 15 instance with persistent storage 
-* **Ingress:** **NGINX Ingress Controller**
 
----
+This project uses **two** separate environments: **Development** and **Production**.
 
+🔄 How it works
 
-## 🔄 CI/CD Pipeline (GitHub Actions)
+**1. Push and Build**  
+When you push code to this repository:  
+-An automated GitHub Action  [process](https://github.com/blendermen/k3s-local-app/blob/main/.github/workflows/main.yml) starts immediately.  
+-A new Docker image is built.  
+-The image is pushed to the DockerHub registry with a unique tag - SHA. 
 
-Deployment is fully automated upon every `push` to the `main` branch:
+ 
+**2. Automatic PR for Manifests**  
+Once the image is ready, the system automatically goes to the [k3s-local-manifest](https://github.com/blendermen/k3s-local-manifest) repository and:  
+-Switches to the k3s-local-manifest and creates a new branch.  
+-Updates the image version to the new one (using kustomize overlays)  
+-Creates a Pull Request (PR) automatically.  
 
-1.  **Build:** Docker images are built for both frontend and backend.
-2.  **Push:** Images are pushed to **Dockerhub** using the commit SHA as a tag (ensuring immutability).
-3.  **Deploy:** Deployment is managed by ArgoCD using another GitHub repository k3s-local-manifest
+ 
+**3. Verification and Production**  
+-Development: You check the changes manually first in the Dev environment.  
+-Approval: If everything works correctly in Dev, you manually approve and merge the PR.  
+-Production: Only after your approval, the changes are applied to the Production environment.  
 
----
+ 
+Summary: No code goes to production without being checked in Dev and manually approved via PR. 
 
+To test it locally, add these entries to the /etc/hosts file  
+_172.23.0.3  prod.mywebpage.pl  
+172.23.0.3  dev.mywebpage.pl_  
+  
+172.23.0.3 = traefik IP  
+kubectl get services -n=kube-system  
+NAME             TYPE           CLUSTER-IP      EXTERNAL-IP             PORT(S)                      AGE  
+traefik          LoadBalancer   10.43.47.5      **172.23.0.3**,172.23.0.4   80:32731/TCP,443:30847/TCP   5d23h   
+
+ 
+ 
 ## 🛠️ Deployment Guide
 
 ### 1. Local Development (Docker Compose)
