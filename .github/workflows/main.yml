@@ -32,7 +32,7 @@ jobs:
           APP_VER=$(cat version_frontend | xargs)
           echo "APP_VERSION=$APP_VER" >> $GITHUB_OUTPUT
           # Wyświetlamy w konsoli dla debugowania
-          echo "Wykryta wersja: $APP_VERSION"
+          echo "Wykryta wersja: $APP_VER"
       # --- 1. BUDOWANIE OBRAZÓW ---
       - name: Build and push Backend image
         run: |
@@ -85,7 +85,7 @@ jobs:
       - name: Update Prod Manifests and Create PR
         working-directory: manifest-repo
         run: |
-          BRANCH_NAME="prod-release-${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ github.sha }})"
+          BRANCH_NAME="prod-release-${{ steps.version_file.outputs.APP_VERSION }}-${{ github.sha }}"
           git checkout -b $BRANCH_NAME
 
           # Przejdź do folderu prod i użyj kustomize
