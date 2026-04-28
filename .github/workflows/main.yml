@@ -22,15 +22,32 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name:
+          Get the frontend version from file and git sha
+          #  Odczytujemy wersję z pliku tekstowego zamiast
+        id: version_file
+        run: |
+          # plik 'version' w  katalogu .github/workflows/
+          # xargs usuwa ewentualne białe znaki/entery
+          APP_VER=$(cat version | xargs)
+          echo "APP_VERSION=$APP_VER" >> $GITHUB_OUTPUT
+
       # --- 1. BUDOWANIE OBRAZÓW ---
       - name: Build and push Backend image
         run: |
-          docker build -t ${{ env.DOCKER_USER }}/backend:${{ github.sha }} -t ${{ env.DOCKER_USER }}/backend:latest -f backend/backend.Dockerfile ./backend
+          docker build -t ${{ env.DOCKER_USER }}/backend:${{ github.sha }} \
+          -t ${{ env.DOCKER_USER }}/backend:latest \
+          -f backend/backend.Dockerfile ./backend
           docker push ${{ env.DOCKER_USER }}/backend --all-tags
 
       - name: Build and push Frontend image
         run: |
-          docker build --build-arg VITE_GIT_SHA=${{ github.sha }} -t ${{ env.DOCKER_USER }}/frontend:${{ github.sha }} -t ${{ env.DOCKER_USER }}/frontend:latest -f frontend/frontend.Dockerfile ./frontend
+          docker build --build-arg VITE_GIT_SHA=${{ github.sha }} \
+          --build-arg VITE_APP_VERSION=${{ steps.version_file.outputs.APP_VERSION }} \
+          -t ${{ env.DOCKER_USER }}/frontend:${{ github.sha }} \
+          -t ${{ env.DOCKER_USER }}/frontend:latest \
+          -t ${{ env.DOCKER_USER }}/frontend:${{ steps.version_file.outputs.APP_VERSION }} \
+          -f frontend/frontend.Dockerfile ./frontend
           docker push ${{ env.DOCKER_USER }}/frontend --all-tags
 
       # --- 2. PRZYGOTOWANIE REPOZYTORIUM MANIFESTÓW ---
@@ -59,7 +76,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes for Dev"
           else
-            git commit -m "chore(dev): update images to ${{ github.sha }}"
+            git commit -m "chore(dev): update images to ${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ steps.version_file.outputs.SHA }})"
             git push origin main
           fi
 
@@ -67,7 +84,7 @@ jobs:
       - name: Update Prod Manifests and Create PR
         working-directory: manifest-repo
         run: |
-          BRANCH_NAME="prod-release-${{ github.sha }}"
+          BRANCH_NAME="prod-release-${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ steps.version_file.outputs.SHA }})"
           git checkout -b $BRANCH_NAME
 
           # Przejdź do folderu prod i użyj kustomize
@@ -79,12 +96,12 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes for Prod"
           else
-            git commit -m "chore(prod): release update to ${{ github.sha }}"
+            git commit -m "chore(prod): release update to ${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ steps.version_file.outputs.SHA }})"
             git push origin $BRANCH_NAME
             
             # Tworzenie PR za pomocą GitHub CLI
             gh pr create \
-              --title "🚀 Prod Release: ${{ github.sha }}" \
+              --title "🚀 Prod Release: ${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ steps.version_file.outputs.SHA }}" \
               --body "Automated production update using Kustomize. Please merge after verifying Dev environment." \
               --base main \
               --head $BRANCH_NAME \

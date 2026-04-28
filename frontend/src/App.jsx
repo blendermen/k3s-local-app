@@ -21,6 +21,9 @@ export default function App() {
   // Pobieramy SHA wstrzyknięte przez Docker Build Arg
   const GIT_SHA = import.meta.env.VITE_GIT_SHA || 'development';
 
+  // Pobieramy wersje apki wstrzyknięte przez Docker Build Arg
+  const APP_VERSION = import.meta.env.VITE_APP_VERSION || 'VERSION_NOT_SET';
+
   // Lokalnie uderzamy w port backendu (localhost:5000).
   // W Azure/Kubernetes używamy ścieżki relatywnej '/api/data'.
   const API_URL = window.location.hostname === 'localhost' 
@@ -81,7 +84,7 @@ export default function App() {
             <span className="text-4xl">🚀</span>
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            K3D React V2.3
+            K3D React {APP_VERSION}
           </h1>
           <p className="text-[10px] text-slate-400 font-mono mt-1 uppercase tracking-tighter">
             Build: {GIT_SHA.substring(0, 7)}

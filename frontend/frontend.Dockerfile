@@ -14,6 +14,9 @@ RUN npm install
 ARG VITE_GIT_SHA
 ENV VITE_GIT_SHA=$VITE_GIT_SHA
 
+ARG VITE_APP_VERSION
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
+
 # Kopiujemy resztę plików źródłowych i budujemy wersję produkcyjną
 COPY . .
 RUN npm run build
