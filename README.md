@@ -1,4 +1,5 @@
 
+
 ![Build Status](https://img.shields.io/github/actions/workflow/status/blendermen/azure-aks-devops/main.yml?branch=main)
 ![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
 # 🚀 K3S DevOps Project: React, Flask & PostgreSQL
@@ -7,6 +8,11 @@ A comprehensive full-stack application ecosystem deployed on **local K3S/K3D**
 
 
 <img width="1329" height="910" alt="k3sdemo" src="https://github.com/user-attachments/assets/de1924ef-ac19-4a68-8692-47dbfcaaec51" />
+
+
+<img width="1507" height="768" alt="argocd" src="https://github.com/user-attachments/assets/d927428b-7f96-4225-a054-2976edae6484" />
+
+
 
 ## 🏗️ System Architecture
 
