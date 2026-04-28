@@ -27,9 +27,9 @@ jobs:
           #  Odczytujemy wersję z pliku tekstowego zamiast
         id: version_file
         run: |
-          # plik 'version' w  katalogu .github/workflows/
+          # plik 'version_frontend' 
           # xargs usuwa ewentualne białe znaki/entery
-          APP_VER=$(cat version | xargs)
+          APP_VER=$(cat version_frontend | xargs)
           echo "APP_VERSION=$APP_VER" >> $GITHUB_OUTPUT
 
       # --- 1. BUDOWANIE OBRAZÓW ---
