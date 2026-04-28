@@ -31,7 +31,8 @@ jobs:
           # xargs usuwa ewentualne białe znaki/entery
           APP_VER=$(cat version_frontend | xargs)
           echo "APP_VERSION=$APP_VER" >> $GITHUB_OUTPUT
-
+          # Wyświetlamy w konsoli dla debugowania
+          echo "Wykryta wersja: $APP_VERSION"
       # --- 1. BUDOWANIE OBRAZÓW ---
       - name: Build and push Backend image
         run: |
@@ -76,7 +77,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes for Dev"
           else
-            git commit -m "chore(dev): update images to ${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ steps.version_file.outputs.SHA }})"
+            git commit -m "chore(dev): update images to ${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ github.sha }})"
             git push origin main
           fi
 
@@ -84,7 +85,7 @@ jobs:
       - name: Update Prod Manifests and Create PR
         working-directory: manifest-repo
         run: |
-          BRANCH_NAME="prod-release-${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ steps.version_file.outputs.SHA }})"
+          BRANCH_NAME="prod-release-${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ github.sha }})"
           git checkout -b $BRANCH_NAME
 
           # Przejdź do folderu prod i użyj kustomize
@@ -96,12 +97,12 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes for Prod"
           else
-            git commit -m "chore(prod): release update to ${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ steps.version_file.outputs.SHA }})"
+            git commit -m "chore(prod): release update to ${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ github.sha }})"
             git push origin $BRANCH_NAME
             
             # Tworzenie PR za pomocą GitHub CLI
             gh pr create \
-              --title "🚀 Prod Release: ${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ steps.version_file.outputs.SHA }}" \
+              --title "🚀 Prod Release: ${{ steps.version_file.outputs.APP_VERSION }} (sha: ${{ github.sha }}" \
               --body "Automated production update using Kustomize. Please merge after verifying Dev environment." \
               --base main \
               --head $BRANCH_NAME \
